@@ -29,8 +29,9 @@ _UZ_DELIVERY_BRANDS = {
 }
 
 _URGENT_KEYWORDS_RE = re.compile(
-    r"\b(urgent|immediately|asap|expire|expir(es|ed)|suspended|locked|"
-    r"shoshilinch|tezkor|tez|muddati|bloklan(adi|gan)|to[‘']xtatil(adi|gan)|"
+    r"\b(urgent(ly)?|immediate(ly)?|asap|expire(d|s)?|"
+    r"suspend(ed)?|lock(ed)?|"
+    r"shoshilinch|tezkor|tezda|muddati|bloklan(adi|gan)|to[‘']xtatil(adi|gan)|"
     r"yopil(adi|gan)|cheklan(adi|gan))\b",
     re.IGNORECASE,
 )
@@ -131,7 +132,9 @@ def analyze(text: str) -> HeuristicResult:
     if suspicious_urls:
         score += 30
     if requests_creds:
-        score += 25
+        score += 30
+    if requests_creds and (has_urgency or has_lure):
+        score += 15
     if has_urgency and has_lure:
         score += 20
     elif has_urgency or has_lure:
