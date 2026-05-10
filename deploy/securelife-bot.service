@@ -1,0 +1,29 @@
+[Unit]
+Description=SecureLife Phishing Detector Telegram Bot
+Documentation=https://github.com/nodirsafarov/securelife-bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botuser
+Group=botuser
+WorkingDirectory=/opt/securelife-bot
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/opt/securelife-bot/.env
+ExecStart=/opt/securelife-bot/.venv/bin/python -m src.main
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/securelife-bot
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=securelife-bot
+
+[Install]
+WantedBy=multi-user.target
