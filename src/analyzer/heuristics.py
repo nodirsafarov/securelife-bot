@@ -49,7 +49,7 @@ _CRED_REQUEST_RE = re.compile(
 )
 
 _OBFUSCATED_DOMAIN_RE = re.compile(
-    r"(?:\d{1,3}\.){3}\d{1,3}|xn--[a-z0-9-]+|[a-z0-9-]+@[a-z0-9-]+",
+    r"(?:\d{1,3}\.){3}\d{1,3}|xn--[a-z0-9-]+",
     re.IGNORECASE,
 )
 
@@ -68,6 +68,7 @@ class HeuristicResult:
     requests_credentials: bool
     has_shortener: bool
     has_ip_or_punycode: bool
+    has_userinfo_trick: bool
     score: int
 
     def to_prompt_context(self) -> str:
@@ -77,6 +78,12 @@ class HeuristicResult:
         if self.suspicious_urls:
             url_summary = ", ".join(u.registered_domain for u in self.suspicious_urls)
             lines.append(f"- URLs found: {url_summary}")
+        if self.has_userinfo_trick:
+            lines.append(
+                "- URL uses the `trusted-name@real-host` trick (text before the @ "
+                "is decorative; the browser only connects to what's after it) — "
+                "near-certain phishing signal"
+            )
         if self.has_urgency:
             lines.append("- Urgency/pressure language detected")
         if self.has_lure:
@@ -101,6 +108,8 @@ def _detect_brands(text_lower: str) -> list[str]:
 
 
 def _is_suspicious_url(url: ExtractedUrl) -> bool:
+    if url.has_userinfo:
+        return True
     if url.registered_domain.lower() in _SHORTENER_DOMAINS:
         return True
     if _OBFUSCATED_DOMAIN_RE.fullmatch(url.registered_domain or ""):
@@ -127,6 +136,7 @@ def analyze(text: str) -> HeuristicResult:
     requests_creds = bool(_CRED_REQUEST_RE.search(text))
     has_shortener = any(u.registered_domain.lower() in _SHORTENER_DOMAINS for u in urls)
     has_ip = any(_OBFUSCATED_DOMAIN_RE.fullmatch(u.registered_domain or "") for u in urls)
+    has_userinfo_trick = any(u.has_userinfo for u in urls)
 
     score = 0
     if suspicious_urls:
@@ -143,6 +153,8 @@ def analyze(text: str) -> HeuristicResult:
         score += 10
     if has_ip:
         score += 15
+    if has_userinfo_trick:
+        score += 25
     if impersonated and not any(b in (u.registered_domain.lower() if u else "") for u in urls for b in impersonated):
         score += 10
     score = min(score, 100)
@@ -155,5 +167,6 @@ def analyze(text: str) -> HeuristicResult:
         requests_credentials=requests_creds,
         has_shortener=has_shortener,
         has_ip_or_punycode=has_ip,
+        has_userinfo_trick=has_userinfo_trick,
         score=score,
     )

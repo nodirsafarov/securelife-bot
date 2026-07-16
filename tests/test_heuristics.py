@@ -29,3 +29,11 @@ def test_uzcard_lookalike_flagged() -> None:
     text = "Visit https://uzcard-bonus.com to claim your reward"
     result = analyze(text)
     assert any("uzcard" in u.registered_domain.lower() for u in result.suspicious_urls)
+
+
+def test_userinfo_obfuscation_flagged() -> None:
+    text = "Kartangiz bloklandi! Tasdiqlash: http://uzcard.uz@evil-scam.ru/verify"
+    result = analyze(text)
+    assert result.has_userinfo_trick
+    assert any(u.registered_domain == "evil-scam.ru" for u in result.suspicious_urls)
+    assert result.score >= 50

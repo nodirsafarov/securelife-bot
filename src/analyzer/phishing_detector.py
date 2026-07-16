@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Iterable
@@ -77,12 +78,7 @@ class PhishingDetector:
     def _heuristic_only_result(
         self, heuristic: heuristics.HeuristicResult, language: str, start: float
     ) -> AnalysisResult:
-        if heuristic.score >= 60:
-            verdict = "PHISHING"
-        elif heuristic.score >= 30:
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "SUSPICIOUS"
+        verdict = "PHISHING" if heuristic.score >= 60 else "SUSPICIOUS"
         reasons = self._fallback_reasons(heuristic, language)
         advice = self._fallback_advice(language)
         duration_ms = int((time.monotonic() - start) * 1000)
@@ -182,6 +178,21 @@ def _stringify_list(value: object, max_items: int) -> list[str]:
     return out
 
 
+_MARKDOWN_SPECIAL_RE = re.compile(r"([_*`\[])")
+
+
+def _escape_markdown(text: str) -> str:
+    """Escape Telegram legacy-Markdown special chars in LLM/user-derived text.
+
+    `reasons`/`advice` come from Gemini's free-form output (which often
+    echoes fragments of the analyzed message, e.g. URLs with underscores).
+    An unbalanced `_`/`*`/`` ` ``/`[` makes Telegram reject the *entire*
+    message with "can't parse entities", so the bot would silently fail
+    to reply. Legacy Markdown supports backslash-escaping these four.
+    """
+    return _MARKDOWN_SPECIAL_RE.sub(r"\\\1", text)
+
+
 def format_result_message(result: AnalysisResult) -> str:
     """Render an AnalysisResult into the localized template for Telegram."""
     if result.verdict == "SAFE":
@@ -193,8 +204,8 @@ def format_result_message(result: AnalysisResult) -> str:
     else:
         verdict_line = t("verdict_unknown", lang=result.language)
 
-    reasons_block = "\n".join(f"• {r}" for r in result.reasons) or "—"
-    advice_block = "\n".join(f"• {a}" for a in result.advice) or "—"
+    reasons_block = "\n".join(f"• {_escape_markdown(r)}" for r in result.reasons) or "—"
+    advice_block = "\n".join(f"• {_escape_markdown(a)}" for a in result.advice) or "—"
 
     return t(
         "result_template",
