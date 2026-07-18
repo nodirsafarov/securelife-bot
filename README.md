@@ -2,6 +2,10 @@
 
 > An AI-powered Telegram bot that helps ordinary people in Uzbekistan and Central Asia spot phishing in SMS, Telegram messages, emails, and chats — explained in their own language.
 
+[![CI](https://github.com/nodirsafarov/securelife-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/nodirsafarov/securelife-bot/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/github/license/nodirsafarov/securelife-bot)](./LICENSE)
+
 🤖 Live bot: [@securelife_bot](https://t.me/securelife_bot)
 🌐 Languages: 🇺🇿 O'zbekcha · 🇬🇧 English
 
